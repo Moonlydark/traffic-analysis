@@ -1,0 +1,23 @@
+# Directory for results
+mkdir /tmp/traffic-analysis-inference
+cd /tmp/traffic-analysis-inference
+# Fetch, build and run dockerfile
+wget https://raw.githubusercontent.com/alnfedorov/traffic-analysis/master/docker/Dockerfile
+docker build -t traffic-analysis . 
+docker run -v /tmp/traffic-analysis-inference:/inference -it --name traffic-analysis traffic-analysis 
+
+# In Docker container - Predict - Track - Render
+cd /traffic-analysis
+python3.6 /traffic-analysis/traffic/scripts/predict_video.py --image-mask="/traffic-analysis/traffic/mask.png" \
+    --config-file="/traffic-analysis/traffic/models/R-50-FPN-1280x512-CustomAnchors-FocalLoss-CascadeMax/config.yaml" \
+    --video-file="/traffic-analysis/examples/night_raw_example.mp4" \
+    --save-to="/inference/predicts.pth"
+
+python3.6 tracking/track_predicts.py --predicts-file="/inference/predicts.pth" \
+                                     --image-regions="/traffic-analysis/tracking/cross-road-regions.png" \
+                                     --save-to="/inference/tracklets.pth"
+
+# Takes time
+python3.6 traffic/scripts/plot_tracklets.py --video-file="/traffic-analysis/examples/night_raw_example.mp4" \
+                                            --tracklets="/inference/tracklets.pth" \
+                                            --save-to="/inference"
